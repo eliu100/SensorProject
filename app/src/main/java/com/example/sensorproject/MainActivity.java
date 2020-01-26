@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity implements  SensorEventListe
     private float deltaX = 0;
     private float deltaY = 0;
     private float deltaZ = 0;
-
+    private boolean buttonPressed = false;
     private float vibrateThreshold = 0;
 
     //private TextView currentX, currentY, currentZ, maxX, maxY, maxZ;
@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity implements  SensorEventListe
     private final int sampleRate = 8000;
     private final int numSamples = duration * sampleRate;
     private final double sample[] = new double[numSamples];
-    private final double freqOfTone = 440; // hz
+    private double freqOfTone = 440; // hz
 
     private final byte generatedSnd[] = new byte[2 * numSamples];
     Handler handler = new Handler();
@@ -61,9 +61,13 @@ public class MainActivity extends AppCompatActivity implements  SensorEventListe
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     // The toggle is enabled
+                    buttonPressed = true;
+                    playSound();
                     onResume();
                 } else {
                     // The toggle is disabled
+                    buttonPressed = false;
+                    audioTrack.stop();
                     onPause();
                 }
             }
@@ -75,7 +79,7 @@ public class MainActivity extends AppCompatActivity implements  SensorEventListe
 
             accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
             sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-            vibrateThreshold = accelerometer.getMaximumRange() / 2;
+            vibrateThreshold = 0;
         } else {
             // fail! we dont have an accelerometer!
         }
@@ -134,7 +138,7 @@ public class MainActivity extends AppCompatActivity implements  SensorEventListe
         deltaX = Math.abs(lastX - event.values[0]);
         deltaY = Math.abs(lastY - event.values[1]);
         deltaZ = Math.abs(lastZ - event.values[2]);
-
+        freqOfTone = (deltaX+deltaY+deltaZ)*50;
         // if the change is below 2, it is just plain noise
         if (deltaX < 2)
             deltaX = 0;
@@ -144,17 +148,6 @@ public class MainActivity extends AppCompatActivity implements  SensorEventListe
             deltaZ = 0;
         if ((deltaX > vibrateThreshold) || (deltaY > vibrateThreshold) || (deltaZ > vibrateThreshold)) {
             v.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
-            final Thread thread = new Thread(new Runnable() {
-                public void run() {
-                    genTone();
-                    handler.post(new Runnable() {
-                        public void run() {
-                            playSound();
-                        }
-                    });
-                }
-            });
-            thread.start();
 
         }
     }
@@ -186,8 +179,10 @@ public class MainActivity extends AppCompatActivity implements  SensorEventListe
             maxZ.setText(Float.toString(deltaZMax));
         }
     }*/
-    void genTone(){
+    public byte[] genTone(){
         // fill out the array
+        byte generatedSnd[] = new byte[2 * numSamples];
+        double sample[] = new double[numSamples];
         for (int i = 0; i < numSamples; ++i) {
             sample[i] = Math.sin(2 * Math.PI * i / (sampleRate/freqOfTone));
         }
@@ -203,15 +198,34 @@ public class MainActivity extends AppCompatActivity implements  SensorEventListe
             generatedSnd[idx++] = (byte) ((val & 0xff00) >>> 8);
 
         }
+        return generatedSnd;
     }
+    Thread noiseThread;
+    AudioTrack audioTrack;
+    Runnable generator = new Runnable()
+    {
+        public void run()
+        {
+            Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
+
+            /* 8000 bytes per second, 1000 bytes = 125 ms */
+            while(buttonPressed)
+            {
+                byte[] tone = genTone();
+                audioTrack.write(tone, 0, tone.length);
+            }
+
+        }
+    };
 
     void playSound(){
-        final AudioTrack audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
+        audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
                 sampleRate, AudioFormat.CHANNEL_OUT_MONO,
-                AudioFormat.ENCODING_PCM_16BIT, generatedSnd.length,
-                AudioTrack.MODE_STATIC);
-        audioTrack.write(generatedSnd, 0, generatedSnd.length);
+                AudioFormat.ENCODING_PCM_16BIT, 8000,
+                AudioTrack.MODE_STREAM);
         audioTrack.play();
+        noiseThread = new Thread(generator);
+        noiseThread.start();
     }
 
 }
