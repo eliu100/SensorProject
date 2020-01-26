@@ -13,26 +13,30 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.widget.CompoundButton;
 import android.widget.TextView;
+import android.widget.ToggleButton;
 
 public class MainActivity extends AppCompatActivity implements  SensorEventListener{
+
+    ToggleButton toggle;
 
     private float lastX, lastY, lastZ;
 
     private SensorManager sensorManager;
     private Sensor accelerometer;
-    private PlaySound soundPlayer;
+    /*private PlaySound soundPlayer;
     private float deltaXMax = 0;
     private float deltaYMax = 0;
     private float deltaZMax = 0;
-    private long[] pattern = {50};
+    private long[] pattern = {50};*/
     private float deltaX = 0;
     private float deltaY = 0;
     private float deltaZ = 0;
 
     private float vibrateThreshold = 0;
 
-    private TextView currentX, currentY, currentZ, maxX, maxY, maxZ;
+    //private TextView currentX, currentY, currentZ, maxX, maxY, maxZ;
 
     public Vibrator v;
 
@@ -50,7 +54,20 @@ public class MainActivity extends AppCompatActivity implements  SensorEventListe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        initializeViews();
+        //initializeViews();
+
+        toggle = (ToggleButton) findViewById(R.id.toggleButton);
+        toggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    // The toggle is enabled
+                    onResume();
+                } else {
+                    // The toggle is disabled
+                    onPause();
+                }
+            }
+        });
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION) != null) {
@@ -60,21 +77,21 @@ public class MainActivity extends AppCompatActivity implements  SensorEventListe
             sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
             vibrateThreshold = accelerometer.getMaximumRange() / 2;
         } else {
-            // fai! we dont have an accelerometer!
+            // fail! we dont have an accelerometer!
         }
 
         //initialize vibration
         v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
     }
-    public void initializeViews() {
-        currentX = (TextView) findViewById(R.id.currentX);
-        currentY = (TextView) findViewById(R.id.currentY);
-        currentZ = (TextView) findViewById(R.id.currentZ);
+    /*public void initializeViews() {
+        currentX.setText("0");
+        currentY.setText("0");
+        currentZ.setText("0");
 
-        maxX = (TextView) findViewById(R.id.maxX);
-        maxY = (TextView) findViewById(R.id.maxY);
-        maxZ = (TextView) findViewById(R.id.maxZ);
-    }
+        maxX.setText("0");
+        maxY.setText("0");
+        maxZ.setText("0");
+    }*/
 
     //onResume() register the accelerometer for listening the events
     protected void onResume() {
@@ -107,11 +124,11 @@ public class MainActivity extends AppCompatActivity implements  SensorEventListe
     @Override
     public void onSensorChanged(SensorEvent event) {
         // clean current values
-        displayCleanValues();
+        //displayCleanValues();
         // display the current x,y,z accelerometer values
-        displayCurrentValues();
+        //displayCurrentValues();
         // display the max x,y,z accelerometer values
-        displayMaxValues();
+        //displayMaxValues();
 
         // get the change of the x,y,z values of the accelerometer
         deltaX = Math.abs(lastX - event.values[0]);
@@ -141,7 +158,7 @@ public class MainActivity extends AppCompatActivity implements  SensorEventListe
 
         }
     }
-    public void displayCleanValues() {
+    /*public void displayCleanValues() {
         currentX.setText("0.0");
         currentY.setText("0.0");
         currentZ.setText("0.0");
@@ -168,7 +185,7 @@ public class MainActivity extends AppCompatActivity implements  SensorEventListe
             deltaZMax = deltaZ;
             maxZ.setText(Float.toString(deltaZMax));
         }
-    }
+    }*/
     void genTone(){
         // fill out the array
         for (int i = 0; i < numSamples; ++i) {

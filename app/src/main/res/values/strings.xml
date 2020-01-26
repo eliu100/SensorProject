@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Sensor Project</string>
+    <string name="no_scream">No Screams</string>
     <string name="scream_time">SCREAM TIME</string>
 </resources>
